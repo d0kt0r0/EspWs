@@ -15,31 +15,39 @@ EspClient.prototype.connect = function () {
   console.log("EspClient: opening websocket connection to " + this.url + "...");
   window.WebSocket = window.WebSocket || window.MozWebSocket;
   var closure = this;
-  this.ws = new WebSocket(this.url);
-  this.ws.onopen = function () {
-    console.log("EspClient: websocket connection opened");
-    this.wsReady = true;
-  };
-  this.ws.onerror = function () {
-    console.log("EspClient: websocket error");
-    this.wsReady = false;
-  };
-  this.ws.onclose = function () {
-    console.log("EspClient: websocket closed (retrying in 1 second)");
-    this.wsReady = false;
-    this.ws = null;
-    setTimeOut(function() {
+  try {
+    this.ws = new WebSocket(this.url);
+    this.ws.onopen = function () {
+      console.log("EspClient: websocket connection opened");
+      closure.wsReady = true;
+    };
+    this.ws.onerror = function () {
+      console.log("EspClient: websocket error");
+      closure.wsReady = false;
+    };
+    this.ws.onclose = function () {
+      console.log("EspClient: websocket closed (retrying in 1 second)");
+      closure.wsReady = false;
+      closure.ws = null;
+      setTimeout(function() {
+        closure.connect();
+      },1000);
+    };
+    this.ws.onmessage = function (m) {
+      closure.onMessage(m);
+    }
+  }
+  catch(e) {
+    console.log("disregarding exception in new WebSocket (retry in 1 second)");
+    setTimeout(function() {
       closure.connect();
     },1000);
-  };
-  this.ws.onmessage = function (m) {
-    closure.onMessage(m);
   }
 }
 
 EspClient.prototype.setUrl = function(url) {
   if(url == this.url) return;
-  if(wsReady) {
+  if(this.wsReady) {
     this.close();
   }
   this.url = url;
@@ -79,6 +87,7 @@ EspClient.prototype.sendPing = function () {
   if(this.pingCount > 65535) this.pingCount = 0;
   var now = this.ac.currentTime;
   this.send({ address:'ping',count:this.pingCount,now:now});
+  console.log("sent ping");
   this.lastPingTime = now;
 }
 
@@ -101,6 +110,7 @@ EspClient.prototype.receivedPing = function (m) {
     var sum = 0;
     for(var n=0;n<this.travelTimes.length;n++) sum = sum + this.travelTimes[n];
     this.travelTime = sum/this.travelTimes.length;
+    console.log("EspClient: new travelTime estimate is " + this.travelTime);
   }
   if(this.travelTimes.length >= 16) { // average over 5-16 measurements
     this.travelTimes.shift();
