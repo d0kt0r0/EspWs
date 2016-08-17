@@ -5,13 +5,17 @@ EspClient = function (url,ac) {
   this.pingCount = 0;
   this.travelTimes = new Array(0);
   this.connect();
+  var closure = this;
+  setInterval(function() {
+    closure.sendPing();
+  },1000+(Math.floor(Math.random()*1000)));
 }
 
 EspClient.prototype.connect = function () {
   console.log("EspClient: opening websocket connection to " + this.url + "...");
   window.WebSocket = window.WebSocket || window.MozWebSocket;
   var closure = this;
-  this.ws = new WebSocket(url);
+  this.ws = new WebSocket(this.url);
   this.ws.onopen = function () {
     console.log("EspClient: websocket connection opened");
     this.wsReady = true;
@@ -21,17 +25,26 @@ EspClient.prototype.connect = function () {
     this.wsReady = false;
   };
   this.ws.onclose = function () {
-    console.log("EspClient: websocket closed (retrying in 5 seconds)");
+    console.log("EspClient: websocket closed (retrying in 1 second)");
     this.wsReady = false;
     this.ws = null;
     setTimeOut(function() {
       closure.connect();
-    },5000);
+    },1000);
   };
   this.ws.onmessage = function (m) {
     closure.onMessage(m);
   }
 }
+
+EspClient.prototype.setUrl = function(url) {
+  if(url == this.url) return;
+  if(wsReady) {
+    this.close();
+  }
+  this.url = url;
+}
+
 
 EspClient.prototype.onMessage = function(m) {
   if(m.data == null) {
@@ -79,12 +92,11 @@ EspClient.prototype.receivedPing = function (m) {
     console.log("EspClient: warning - mismatched ping count");
     return;
   }
-  if(typeof m.time != 'number') {
+  if(typeof m.now != 'number') {
     console.log("EspClient: missing/invalid time");
     return;
   }
-  var x = (now - m.time)/2;
-  this.travelTimes.push((now - m/time)/2);
+  this.travelTimes.push((now - m.now)/2);
   if(this.travelTimes.length >= 5) { // start reporting after 5 measurements
     var sum = 0;
     for(var n=0;n<this.travelTimes.length;n++) sum = sum + this.travelTimes[n];
@@ -121,6 +133,7 @@ EspClient.prototype.receivedTempo = function (m) {
     return;
   }
   this.tempo = {time:m.time,beats:m.beats,bpm:m.bpm};
+  if(typeof this.tempoCallback == 'function') this.tempoCallback(this.tempo);
 }
 
 EspClient.prototype.sendSetTempo = function (x) {
