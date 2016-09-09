@@ -89,6 +89,7 @@ EspClient.prototype.sendPing = function () {
   this.send({ address:'ping',count:this.pingCount,now:now});
   console.log("sent ping");
   this.lastPingTime = now;
+  this.sendQueryTempo();
 }
 
 EspClient.prototype.receivedPing = function (m) {

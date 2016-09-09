@@ -9,7 +9,7 @@ var express = require('express');
 
 var time = (new Date).getTime()/1000.0;
 var beats = 0;
-var bpm = 30.0;
+var bpm = 80.0;
 
 var tcpPort = 8002;
 var server = http.createServer();
@@ -38,10 +38,10 @@ wss.on('connection',function(ws) {
       // respond to 'queryTempo' messages
       else if(n.address == "queryTempo") {
         try {
-          var now = new Date().now()/1000.0;
+          var now = (new Date).getTime()/1000.0;
           var remoteNow = n.now + n.travelTime;
           var clockDiff = now - remoteNow;
-          var r = JSON.stringify({time:time-clockDiff,beats:beats,bpm:bpm});
+          var r = JSON.stringify({address:'tempo',time:time-clockDiff,beats:beats,bpm:bpm});
           ws.send(r);
           console.log("queryTempo");
         }
