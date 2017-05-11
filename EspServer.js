@@ -14,7 +14,7 @@ var bpm = 80.0;
 var tcpPort = 8002;
 var server = http.createServer();
 var app = express();
-app.use(express.static(__dirname));
+app.use(express.static(__dirname + "/Estuary.jsexe"));
 server.on('request',app);
 
 var wss = new WebSocket.Server({server: server});
